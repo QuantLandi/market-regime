@@ -1,9 +1,8 @@
 """Daily PX_LAST for locked All Weather proxies via Bloomberg Desktop API.
 
-  uv sync --extra bloomberg
-  uv run python -m market_regime --update
+Writes gitignored data/closes_raw.csv only (no ffill). Then:
 
-Writes gitignored data/closes.csv. Cash (GB3) is a rate, not a TR index.
+  uv run python -m market_regime preprocess
 """
 
 from __future__ import annotations
@@ -22,7 +21,7 @@ PORT = 8194
 FIELD = "PX_LAST"
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
-CLOSES_CSV = DATA_DIR / "closes.csv"
+CLOSES_RAW_CSV = DATA_DIR / "closes_raw.csv"
 
 
 def _as_date(el: blpapi.Element) -> date:
@@ -91,7 +90,7 @@ def pull_one(session: blpapi.Session, ticker: str, *, start: str) -> pd.Series:
     return s
 
 
-def load_closes(path: Path = CLOSES_CSV) -> pd.DataFrame | None:
+def load_raw(path: Path = CLOSES_RAW_CSV) -> pd.DataFrame | None:
     if not path.exists():
         return None
     return pd.read_csv(path, index_col=0, parse_dates=True)
@@ -112,10 +111,11 @@ def merge_series(existing: pd.Series, new: pd.Series) -> pd.Series:
 
 
 def download(*, update: bool = False, start: str = SAMPLE_START) -> pd.DataFrame:
+    """Pull Bloomberg and write closes_raw.csv (outer join, no ffill)."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    existing = load_closes() if update else None
+    existing = load_raw() if update else None
     if update and existing is None:
-        print("No existing data/closes.csv; doing a full download.", flush=True)
+        print("No existing data/closes_raw.csv; doing a full download.", flush=True)
 
     start_ts = pd.Timestamp(start)
     start_ymd = _ymd(start)
@@ -188,18 +188,22 @@ def download(*, update: bool = False, start: str = SAMPLE_START) -> pd.DataFrame
     keys = [k for k in PROXIES if k in panel_cols]
     panel = pd.concat({k: panel_cols[k] for k in keys}, axis=1, sort=True)
     panel.index.name = "date"
-    # Complete daily rows only (matches SAMPLE_START / DAILY_SAMPLE_START).
-    panel = panel.loc[start_ts:].dropna(how="any")
-    panel.to_csv(CLOSES_CSV)
-    print(f"Wrote {CLOSES_CSV.relative_to(ROOT).as_posix()} ({len(panel)} rows)", flush=True)
+    panel = panel.loc[start_ts:].dropna(how="all")
+    panel.to_csv(CLOSES_RAW_CSV)
+    n_na = int(panel.isna().sum().sum())
+    print(
+        f"Wrote {CLOSES_RAW_CSV.relative_to(ROOT).as_posix()} "
+        f"({len(panel)} rows, {n_na} NA — raw outer join, no ffill)",
+        flush=True,
+    )
     if failed:
         print("Failed:", "; ".join(f"{k} ({v})" for k, v in failed.items()), flush=True)
     return panel
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
-        description="Download locked All Weather proxies via Bloomberg DAPI."
+        description="Download locked All Weather proxies via Bloomberg DAPI (raw)."
     )
     parser.add_argument(
         "--update",
@@ -211,7 +215,7 @@ def main() -> None:
         default=SAMPLE_START,
         help=f"Panel start (default {SAMPLE_START}).",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     download(update=args.update, start=args.start)
 
 

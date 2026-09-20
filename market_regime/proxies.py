@@ -2,6 +2,7 @@
 
 No TIPS: rising-inflation boxes rely on commodities (say so in class).
 DXY is USD / dollar exposure — never cash. Cash is the risk-free sleeve.
+copper/wheat/crude: S&P GSCI excess-return indices (rolls embedded) — not LME 3M / W 1 / CL1.
 """
 
 from __future__ import annotations
@@ -48,21 +49,21 @@ PROXIES: dict[str, Proxy] = {
     },
     "copper": {
         "sleeve": "base_metals",
-        "name": "LME Copper 3M",
+        "name": "S&P GSCI Copper ER",
         "role": "commodity",
-        "bloomberg": "LMCADS03 Comdty",
+        "bloomberg": "SPGSICP Index",
     },
     "wheat": {
         "sleeve": "agriculturals",
-        "name": "Wheat",
+        "name": "S&P GSCI Wheat ER",
         "role": "commodity",
-        "bloomberg": "W 1 Comdty",
+        "bloomberg": "SPGSWHP Index",
     },
     "crude": {
         "sleeve": "energy",
-        "name": "WTI crude",
+        "name": "S&P GSCI Crude Oil ER",
         "role": "commodity",
-        "bloomberg": "CL1 Comdty",
+        "bloomberg": "SPGSCLP Index",
     },
     "dxy": {
         "sleeve": "usd",
