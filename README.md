@@ -5,6 +5,7 @@ labels. Data stays local (gitignored).
 
 Teaching snapshot of the current pull: [growth-inflation-regime-findings.md](growth-inflation-regime-findings.md)
 (figures under `figures/`; regenerate with `uv run python -m market_regime.plot_findings`).
+PDF: `typst compile growth-inflation-regime-findings.typ` → `growth-inflation-regime-findings.pdf`.
 
 ## Setup
 
@@ -67,6 +68,7 @@ uv run python -m market_regime download-releases --source csv --csv data/release
 
 uv run python -m market_regime regimes           # -> regimes + means/vols/ret_vol CSVs
 uv run python -m market_regime.plot_findings     # -> figures/*.png
+uv run python -m market_regime.plot_combo        # -> figures/combo_timeline_sharpe.png (share/LinkedIn)
 ```
 
 | File | Role |
