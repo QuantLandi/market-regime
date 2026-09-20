@@ -9,5 +9,7 @@ __pycache__/
 data/*.csv
 data/pull_meta.json
 !data/.gitkeep
+!data/releases.example.csv
 .env
 .env.*
+!.env.example

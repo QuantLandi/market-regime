@@ -1,4 +1,6 @@
-"""Locked teaching proxies for All Weather regime tables.
+"""Locked teaching *asset* proxies for All Weather regime tables.
+
+Growth/inflation dating lives in ``market_regime.macro`` (first-print GDP/CPI YoY).
 
 No TIPS: rising-inflation boxes rely on commodities (say so in class).
 DXY is USD / dollar exposure — never cash. Cash is the risk-free sleeve.

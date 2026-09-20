@@ -1,11 +1,12 @@
 [project]
 name = "market-regime"
 version = "0.1.0"
-description = "All Weather proxy panel and Bloomberg download"
+description = "All Weather asset proxies and first-print growth/inflation regimes"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "pandas>=2.2",
+    "python-dotenv>=1.2.3",
 ]
 
 [project.optional-dependencies]

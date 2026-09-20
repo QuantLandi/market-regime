@@ -1,0 +1,9 @@
+release_date,series,actual,release_type,obs_period,source
+1994-04-28,gdp_yoy,3.1,advance,1994-01-01,example
+1994-05-26,gdp_yoy,3.5,second,1994-01-01,example
+1994-06-29,gdp_yoy,3.4,third,1994-01-01,example
+1994-07-29,gdp_yoy,3.7,advance,1994-04-01,example
+1994-04-13,cpi_yoy,2.5,,1994-03-01,example
+1994-05-12,cpi_yoy,2.4,,1994-04-01,example
+1994-06-14,cpi_yoy,2.6,,1994-05-01,example
+1994-07-13,cpi_yoy,2.8,,1994-06-01,example
