@@ -11,6 +11,18 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "blpapi"
+version = "3.26.9.1"
+source = { registry = "https://blpapi.bloomberg.com/repository/releases/python/simple/" }
+sdist = { url = "https://blpapi.bloomberg.com/repository/releases/python/blpapi-3.26.9.1.tar.gz", hash = "sha256:46a2c918adc17e4f592305cfddb89039fbd31fe13b099129d21f449798a491da" }
+wheels = [
+    { url = "https://blpapi.bloomberg.com/repository/releases/python/blpapi-3.26.9.1-py3-none-macosx_11_0_arm64.whl", hash = "sha256:97735cc905d6c7621d0c3f31b53015fcae64bf89592eb74bda942d3f826f60ca" },
+    { url = "https://blpapi.bloomberg.com/repository/releases/python/blpapi-3.26.9.1-py3-none-manylinux2014_x86_64.whl", hash = "sha256:98c0b893a8674eebabccb9fd428f1d8a23477f80258150d230853f547aa51695" },
+    { url = "https://blpapi.bloomberg.com/repository/releases/python/blpapi-3.26.9.1-py3-none-win32.whl", hash = "sha256:b702470295e6d391b6577890c9db5e4238d19883287f20f2a3289ae44beb68f6" },
+    { url = "https://blpapi.bloomberg.com/repository/releases/python/blpapi-3.26.9.1-py3-none-win_amd64.whl", hash = "sha256:623458f7738766fbb188fff7cae688b3adf6bc18f9ec9a1b0c9d046f21147d8e" },
+]
+
+[[package]]
 name = "market-regime"
 version = "0.1.0"
 source = { editable = "." }
@@ -19,11 +31,18 @@ dependencies = [
     { name = "pandas" },
 ]
 
+[package.optional-dependencies]
+bloomberg = [
+    { name = "blpapi" },
+]
+
 [package.metadata]
 requires-dist = [
+    { name = "blpapi", marker = "extra == 'bloomberg'", index = "https://blpapi.bloomberg.com/repository/releases/python/simple/" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "pandas", specifier = ">=2.2" },
 ]
+provides-extras = ["bloomberg"]
 
 [[package]]
 name = "numpy"

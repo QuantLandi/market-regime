@@ -1,0 +1,280 @@
+"""Daily PX_LAST for locked All Weather proxies via Bloomberg Desktop API.
+
+Run on a Bloomberg PC with the Terminal logged in.
+
+  uv sync --extra bloomberg
+  uv run python examples/download_proxies.py
+  uv run python examples/download_proxies.py --update
+
+Writes gitignored CSVs under data/ (relative paths). Cash (GB3) is stored as
+the quoted rate — convert to a period return later, do not treat it as a TR index.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import date, datetime
+from pathlib import Path
+
+import blpapi
+import pandas as pd
+
+from market_regime.proxies import PROXIES, SAMPLE_CONVENTION, SAMPLE_START
+
+HOST = "127.0.0.1"
+PORT = 8194
+FIELD = "PX_LAST"
+ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "data"
+CLOSES_CSV = DATA_DIR / "closes.csv"
+META_JSON = DATA_DIR / "pull_meta.json"
+
+
+def _as_date(el: blpapi.Element) -> date:
+    v = el.getValue()
+    if hasattr(v, "year"):
+        return date(int(v.year), int(v.month), int(v.day))
+    return date.fromisoformat(str(v)[:10])
+
+
+def _ymd(ts: pd.Timestamp | date | str) -> str:
+    if isinstance(ts, str):
+        return pd.Timestamp(ts).strftime("%Y%m%d")
+    if isinstance(ts, date) and not isinstance(ts, datetime):
+        return ts.strftime("%Y%m%d")
+    return pd.Timestamp(ts).strftime("%Y%m%d")
+
+
+def connect() -> blpapi.Session:
+    opts = blpapi.SessionOptions()
+    opts.setServerHost(HOST)
+    opts.setServerPort(PORT)
+    session = blpapi.Session(opts)
+    if not session.start():
+        raise SystemExit("Could not start Bloomberg session. Is the Terminal logged in?")
+    if not session.openService("//blp/refdata"):
+        session.stop()
+        raise SystemExit("Could not open //blp/refdata")
+    return session
+
+
+def pull_one(session: blpapi.Session, ticker: str, *, start: str) -> pd.Series:
+    """One HistoricalDataRequest per ticker (do not batch / tight-loop)."""
+    svc = session.getService("//blp/refdata")
+    req = svc.createRequest("HistoricalDataRequest")
+    req.append("securities", ticker)
+    req.append("fields", FIELD)
+    req.set("startDate", start)
+    req.set("endDate", date.today().strftime("%Y%m%d"))
+    req.set("periodicitySelection", "DAILY")
+    session.sendRequest(req)
+
+    rows: list[tuple[date, float]] = []
+    while True:
+        ev = session.nextEvent(60_000)
+        for msg in ev:
+            if msg.hasElement("responseError"):
+                raise RuntimeError(str(msg.getElement("responseError")))
+            if not msg.hasElement("securityData"):
+                continue
+            sec = msg.getElement("securityData")
+            if sec.hasElement("securityError"):
+                raise RuntimeError(str(sec.getElement("securityError")))
+            field_data = sec.getElement("fieldData")
+            for i in range(field_data.numValues()):
+                pt = field_data.getValueAsElement(i)
+                if not pt.hasElement(FIELD) or pt.getElement(FIELD).isNull():
+                    continue
+                rows.append((_as_date(pt.getElement("date")), pt.getElementAsFloat(FIELD)))
+        if ev.eventType() == blpapi.Event.RESPONSE:
+            break
+
+    if not rows:
+        return pd.Series(dtype=float)
+    s = pd.Series({pd.Timestamp(d): float(v) for d, v in rows}).sort_index()
+    s.index.name = "date"
+    return s
+
+
+def load_closes(path: Path = CLOSES_CSV) -> pd.DataFrame | None:
+    if not path.exists():
+        return None
+    return pd.read_csv(path, index_col=0, parse_dates=True)
+
+
+def merge_series(existing: pd.Series, new: pd.Series) -> pd.Series:
+    name = existing.name or new.name
+    if existing.empty and new.empty:
+        return pd.Series(dtype=float, name=name)
+    if existing.empty:
+        return new.rename(name)
+    if new.empty:
+        return existing.rename(name)
+    out = existing.copy()
+    out = out.reindex(out.index.union(new.index)).sort_index()
+    out.update(new)
+    return out.rename(name)
+
+
+def _coverage(s: pd.Series) -> dict[str, object]:
+    valid = s.dropna()
+    if valid.empty:
+        return {"n": 0, "first": None, "last": None}
+    return {
+        "n": int(valid.shape[0]),
+        "first": valid.index.min().strftime("%Y-%m-%d"),
+        "last": valid.index.max().strftime("%Y-%m-%d"),
+    }
+
+
+def write_meta(
+    panel: pd.DataFrame,
+    *,
+    start: str,
+    update: bool,
+    failed: dict[str, str],
+) -> None:
+    series_meta: dict[str, dict[str, object]] = {}
+    for key, proxy in PROXIES.items():
+        cov = _coverage(panel[key]) if key in panel.columns else {"n": 0, "first": None, "last": None}
+        series_meta[key] = {
+            "sleeve": proxy["sleeve"],
+            "name": proxy["name"],
+            "bloomberg": proxy["bloomberg"],
+            "role": proxy["role"],
+            **cov,
+        }
+    meta = {
+        "pulled_at": datetime.now().isoformat(timespec="seconds"),
+        "start": start,
+        "end": date.today().isoformat(),
+        "field": FIELD,
+        "periodicity": "DAILY",
+        "convention": SAMPLE_CONVENTION,
+        "update": update,
+        "closes": str(CLOSES_CSV.relative_to(ROOT)).replace("\\", "/"),
+        "series": series_meta,
+        "failed": failed,
+        "notes": {
+            "cash": "GB3 PX_LAST is a rate, not a total-return index.",
+            "dxy": "USD exposure — never cash.",
+            "commodities": "LMCADS03 / W 1 / CL1 are LME 3M or front futures, not TR indices.",
+            "tips": "US TIPS intentionally omitted; rising-inflation boxes lean on commodities.",
+        },
+    }
+    META_JSON.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+
+
+def download(*, update: bool = False, start: str = SAMPLE_START) -> pd.DataFrame:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    existing = load_closes() if update else None
+    if update and existing is None:
+        print("No existing data/closes.csv; doing a full download.", flush=True)
+
+    start_ts = pd.Timestamp(start)
+    start_ymd = _ymd(start)
+    panel_cols: dict[str, pd.Series] = {}
+    failed: dict[str, str] = {}
+
+    session = connect()
+    try:
+        for key, proxy in PROXIES.items():
+            ticker = proxy["bloomberg"]
+            old = (
+                existing[key].rename(key)
+                if existing is not None and key in existing.columns
+                else pd.Series(dtype=float, name=key)
+            )
+            valid = old.dropna()
+            first = None if valid.empty else pd.Timestamp(valid.index.min())
+            last = None if valid.empty else pd.Timestamp(valid.index.max())
+
+            # --update must backfill when SAMPLE_START moves earlier than
+            # existing history (forward-only updates left 1988–1997 empty).
+            if update and last is not None and first is not None and first <= start_ts:
+                req_start = _ymd(last)
+                mode = "forward"
+            else:
+                req_start = start_ymd
+                mode = "full" if valid.empty or not update else "backfill"
+
+            print(f"{key:8}  {ticker:18}  {mode} from {req_start}", flush=True)
+            try:
+                new = pull_one(session, ticker, start=req_start).rename(key)
+            except Exception as exc:
+                failed[key] = str(exc)
+                print(f"  FAIL: {exc}", flush=True)
+                if update and not old.empty:
+                    panel_cols[key] = old
+                    print("  kept existing series", flush=True)
+                continue
+
+            if new.empty:
+                failed[key] = "empty fieldData"
+                print("  FAIL: empty", flush=True)
+                if update and not old.empty:
+                    panel_cols[key] = old
+                    print("  kept existing series", flush=True)
+                continue
+
+            if update and not valid.empty:
+                merged = merge_series(old, new)
+                added = int(new.dropna().index.difference(valid.index).size)
+                panel_cols[key] = merged
+                print(
+                    f"  +{added} new dates "
+                    f"(panel {merged.dropna().shape[0]} non-null; "
+                    f"{merged.dropna().index.min().date()} -> "
+                    f"{merged.dropna().index.max().date()})",
+                    flush=True,
+                )
+            else:
+                panel_cols[key] = new
+                print(
+                    f"  {new.dropna().shape[0]} rows  "
+                    f"{new.index.min().date()} -> {new.index.max().date()}",
+                    flush=True,
+                )
+    finally:
+        session.stop()
+
+    if not panel_cols:
+        raise SystemExit(f"No series downloaded. Failed: {failed}")
+
+    # Outer join: indices vs metals vs grains do not share sessions.
+    keys = [k for k in PROXIES if k in panel_cols]
+    panel = pd.concat({k: panel_cols[k] for k in keys}, axis=1, sort=True)
+    panel.index.name = "date"
+    panel.to_csv(CLOSES_CSV)
+    write_meta(panel, start=start, update=update, failed=failed)
+    print(f"Wrote {CLOSES_CSV.relative_to(ROOT).as_posix()}", flush=True)
+    print(f"Wrote {META_JSON.relative_to(ROOT).as_posix()}", flush=True)
+    if failed:
+        print("Failed:", "; ".join(f"{k} ({v})" for k, v in failed.items()), flush=True)
+    return panel
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Download locked All Weather proxies via Bloomberg DAPI."
+    )
+    parser.add_argument(
+        "--update",
+        action="store_true",
+        help=(
+            "Incremental: extend forward from last date; also backfill from "
+            "--start when existing history begins later (e.g. 1997 panel + 1988 start)."
+        ),
+    )
+    parser.add_argument(
+        "--start",
+        default=SAMPLE_START,
+        help=f"Panel start (default {SAMPLE_START}; SPX TR history, no TIPS).",
+    )
+    args = parser.parse_args()
+    download(update=args.update, start=args.start)
+
+
+if __name__ == "__main__":
+    main()

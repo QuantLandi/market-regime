@@ -9,6 +9,17 @@ dependencies = [
     "pandas>=2.2",
 ]
 
+[project.optional-dependencies]
+bloomberg = ["blpapi"]
+
+[[tool.uv.index]]
+name = "bloomberg"
+url = "https://blpapi.bloomberg.com/repository/releases/python/simple/"
+explicit = true
+
+[tool.uv.sources]
+blpapi = { index = "bloomberg" }
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

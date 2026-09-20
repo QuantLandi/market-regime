@@ -1,38 +1,23 @@
 # Market regime
 
-Growth–inflation **regime labeling** and **asset-class returns by regime** (All Weather four-box lens), for Global Macro teaching.
+Software workspace for growth–inflation **regime labeling** and **asset-class returns by regime** (All Weather four-box lens).
 
-## Default sample (locked)
-
-- **Start:** 1997-03-01 (US TIPS binds the panel)
-- **End:** latest available
-- **Convention:** total-return / index series where they exist; front-month futures for copper, wheat, crude
-- **Series:** locked in [`market_regime/proxies.py`](market_regime/proxies.py)
-
-| Sleeve | Series | Ticker |
-| --- | --- | --- |
-| Equities | S&P 500 Total Return | SPXT Index |
-| Nominal bonds | Bloomberg US Treasury TR | LUATTRUU Index |
-| IL bonds | US TIPS TR (Series-L) | LBUTLTRUU Index |
-| Cash | 3M T-bill | GB3 Govt |
-| Precious metals | Gold spot | XAU Curncy |
-| Base metals | Copper | HG1 Comdty |
-| Agriculturals | Wheat | W 1 Comdty |
-| Energy | WTI crude | CL1 Comdty |
-| USD (optional FX) | Dollar index | DXY Curncy (never cash) |
+Tied to Session 5 candidate work: see [sessions/session05/objectives.md](../sessions/session05/objectives.md). May ship in Session 5 or move to Slot 6 — the code lives here either way.
 
 ## Layout
 
 | Path | Role |
 |------|------|
 | [market_regime/](market_regime/) | Python package |
-| [data/](data/) | Frozen CSVs (Bloomberg / FRED exports); relative paths |
-| [examples/](examples/) | Small runnable scripts |
+| [data/closes.csv](data/closes.csv) | Frozen **complete daily** panel from **1994-03-01** |
 
-## Setup
+## Sample window
+
+`SAMPLE_START` = `DAILY_SAMPLE_START` = **1994-03-01**  
+(`LUATTRUU` is month-end only before that; sparse pre-1994 history was removed.)
 
 ```bash
-uv sync
+uv run python -c "from market_regime import load_daily_closes; print(load_daily_closes().shape)"
 ```
 
 ## Run
@@ -43,6 +28,15 @@ uv run python examples/list_proxies.py
 
 ## Status
 
-- Sample + series/tickers: **locked**
-- Regime dating (expectations vs realized): still open
+- Proxies: no TIPS; copper = LME `LMCADS03 Comdty`
+- Panel: complete daily rows only, 1994-03-01 → present
+- Regime dating: still open
 - Avg return-by-regime table: not built yet
+
+Bloomberg re-pull (keeps start at 1994-03-01):
+
+```bash
+cd market-regime
+uv sync --extra bloomberg
+uv run python examples/download_proxies.py --update
+```

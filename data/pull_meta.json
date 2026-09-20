@@ -1,0 +1,92 @@
+{
+  "pulled_at": "2026-09-20T14:42:54",
+  "start": "1994-03-01",
+  "end": "2026-09-18",
+  "field": "PX_LAST",
+  "periodicity": "DAILY",
+  "convention": "indices_tr",
+  "trimmed_to": "1994-03-01",
+  "note": "Sparse pre-1994-03 history removed; panel is complete daily rows only.",
+  "closes": "data/closes.csv",
+  "series": {
+    "spx_tr": {
+      "sleeve": "equities",
+      "name": "S&P 500 Total Return",
+      "bloomberg": "SPXT Index",
+      "role": "core",
+      "n": 7965,
+      "first": "1994-03-01",
+      "last": "2026-09-18"
+    },
+    "ust_tr": {
+      "sleeve": "nominal_bonds",
+      "name": "Bloomberg US Treasury TR",
+      "bloomberg": "LUATTRUU Index",
+      "role": "core",
+      "n": 7965,
+      "first": "1994-03-01",
+      "last": "2026-09-18"
+    },
+    "cash": {
+      "sleeve": "cash",
+      "name": "3M T-bill",
+      "bloomberg": "GB3 Govt",
+      "role": "core",
+      "n": 7965,
+      "first": "1994-03-01",
+      "last": "2026-09-18"
+    },
+    "gold": {
+      "sleeve": "precious_metals",
+      "name": "Gold spot",
+      "bloomberg": "XAU Curncy",
+      "role": "commodity",
+      "n": 7965,
+      "first": "1994-03-01",
+      "last": "2026-09-18"
+    },
+    "copper": {
+      "sleeve": "base_metals",
+      "name": "LME Copper 3M",
+      "bloomberg": "LMCADS03 Comdty",
+      "role": "commodity",
+      "n": 7965,
+      "first": "1994-03-01",
+      "last": "2026-09-18"
+    },
+    "wheat": {
+      "sleeve": "agriculturals",
+      "name": "Wheat",
+      "bloomberg": "W 1 Comdty",
+      "role": "commodity",
+      "n": 7965,
+      "first": "1994-03-01",
+      "last": "2026-09-18"
+    },
+    "crude": {
+      "sleeve": "energy",
+      "name": "WTI crude",
+      "bloomberg": "CL1 Comdty",
+      "role": "commodity",
+      "n": 7965,
+      "first": "1994-03-01",
+      "last": "2026-09-18"
+    },
+    "dxy": {
+      "sleeve": "usd",
+      "name": "Dollar index",
+      "bloomberg": "DXY Curncy",
+      "role": "optional_fx",
+      "n": 7965,
+      "first": "1994-03-01",
+      "last": "2026-09-18"
+    }
+  },
+  "failed": {},
+  "notes": {
+    "cash": "GB3 PX_LAST is a rate, not a total-return index.",
+    "dxy": "USD exposure \u2014 never cash.",
+    "commodities": "LMCADS03 / W 1 / CL1 are LME 3M or front futures, not TR indices.",
+    "tips": "US TIPS intentionally omitted; rising-inflation boxes lean on commodities."
+  }
+}
