@@ -3,6 +3,9 @@
 Locked All Weather **asset** proxies + first-print **growth/inflation** regime
 labels. Data stays local (gitignored).
 
+Teaching snapshot of the current pull: [growth-inflation-regime-findings.md](growth-inflation-regime-findings.md)
+(figures under `figures/`; regenerate with `uv run python -m market_regime.plot_findings`).
+
 ## Setup
 
 ```bash
@@ -39,8 +42,10 @@ GDP YoY and CPI YoY — never today’s revised path, never ECO survey medians.
 |-----|------|-------------------------|
 | **A** `map_a` | `sign(g) × sign(π)` | 1st derivatives (rate up/down) |
 | **B** `map_b` | `sign(Δg) × sign(Δπ)` | 2nd derivatives (accel/slow) |
+| **Joint** `map_joint` | `(sign g, sign Δg) × (sign π, sign Δπ)` | Full 1st×2nd combo (up to 16 boxes) |
 
-Sign rule: `> 0` → `up`, else `down`. Box ids look like `g_up__pi_down`.
+Sign rule: `> 0` → `up`, else `down`. Box ids look like `g_up__pi_down`
+(Maps A/B) or `g_up_down__pi_up_up` (joint: rate then Δ for each of g and π).
 
 **Timing:** new label from the **next** session after `release_date`; hold until
 the next print. Asset returns can start 1994-03-01; Map A is non-null only once
@@ -60,7 +65,8 @@ uv run python -m market_regime download-releases --source bloomberg  # Terminal;
 uv run python -m market_regime download-releases --source csv --csv data/releases.example.csv
 # example CSV is schema-only (1994 stub) — replace with a full history before teaching
 
-uv run python -m market_regime regimes           # -> data/regimes.csv + regime_means.csv
+uv run python -m market_regime regimes           # -> regimes + means/vols/ret_vol CSVs
+uv run python -m market_regime.plot_findings     # -> figures/*.png
 ```
 
 | File | Role |
@@ -70,8 +76,11 @@ uv run python -m market_regime regimes           # -> data/regimes.csv + regime_
 | `data/returns.csv` | Daily log returns |
 | `data/releases_raw.csv` | First-print GDP/CPI YoY events |
 | `data/releases.example.csv` | Tiny schema example (tracked) |
-| `data/regimes.csv` | Daily Map A/B labels on the returns calendar |
-| `data/regime_means.csv` | Annualized mean log returns (×252) by box |
+| `data/regimes.csv` | Daily Map A/B/joint labels on the returns calendar |
+| `data/regime_means.csv` | Annualized mean excess vs cash (×252) by box |
+| `data/regime_vols.csv` | Annualized vol of excess vs cash (×√252) by box |
+| `data/regime_ret_vol.csv` | Sharpe: mean/sd(excess)×√252 |
+| `figures/*.png` | Client-note heatmaps (return, vol, return/vol) |
 
 ### `releases_raw.csv` schema
 
