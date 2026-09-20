@@ -37,7 +37,7 @@ PROXIES: dict[str, Proxy] = {
     },
     "cash": {
         "sleeve": "cash",
-        "name": "3M T-bill",
+        "name": "3M T-bill yield (GB3, %)",
         "role": "core",
         "bloomberg": "GB3 Govt",
     },
