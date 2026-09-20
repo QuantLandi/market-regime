@@ -11,7 +11,6 @@ from typing import TypedDict
 # Frozen panel and Bloomberg pulls: dense daily only (LUATTRUU daily from Mar 1994).
 SAMPLE_START = "1994-03-01"
 DAILY_SAMPLE_START = SAMPLE_START
-SAMPLE_CONVENTION = "indices_tr"
 
 
 class Proxy(TypedDict):

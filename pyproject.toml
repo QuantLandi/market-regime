@@ -1,11 +1,10 @@
 [project]
 name = "market-regime"
 version = "0.1.0"
-description = "Growth–inflation regime labeling and asset returns by All Weather box"
+description = "All Weather proxy panel and Bloomberg download"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "numpy>=2.0",
     "pandas>=2.2",
 ]
 

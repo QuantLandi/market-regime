@@ -27,7 +27,6 @@ name = "market-regime"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "numpy" },
     { name = "pandas" },
 ]
 
@@ -39,7 +38,6 @@ bloomberg = [
 [package.metadata]
 requires-dist = [
     { name = "blpapi", marker = "extra == 'bloomberg'", index = "https://blpapi.bloomberg.com/repository/releases/python/simple/" },
-    { name = "numpy", specifier = ">=2.0" },
     { name = "pandas", specifier = ">=2.2" },
 ]
 provides-extras = ["bloomberg"]
