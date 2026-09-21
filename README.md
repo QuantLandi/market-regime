@@ -67,6 +67,8 @@ uv run python -m market_regime download-releases --source csv --csv data/release
 # example CSV is schema-only (1994 stub) — replace with a full history before teaching
 
 uv run python -m market_regime regimes           # -> regimes + means/vols/ret_vol CSVs
+uv run python -m backtest                        # -> expanding Map B LS + EW bench
+# (same) uv run python -m market_regime backtest
 uv run python -m market_regime.plot_findings     # -> figures/*.png
 uv run python -m market_regime.plot_combo        # -> figures/combo_timeline_sharpe.png (share/LinkedIn)
 ```
@@ -83,6 +85,25 @@ uv run python -m market_regime.plot_combo        # -> figures/combo_timeline_sha
 | `data/regime_vols.csv` | Annualized vol of excess vs cash (×√252) by box |
 | `data/regime_ret_vol.csv` | Sharpe: mean/sd(excess)×√252 |
 | `figures/*.png` | Client-note heatmaps (return, vol, return/vol) |
+| `backtest/` | Expanding-window Map B LS research backtest |
+
+### Map B backtest (`backtest/`)
+
+Long sleeves with **positive** mean excess in the current Map B box, short
+**negative**; hold until the next GDP/CPI print. **Expanding-window:** at each
+print-driven rebalance, signs use only past days in that box (`date < t`,
+default ≥60 days). Two weight schemes:
+
+| Scheme | LS weights | Long-only bench |
+|--------|------------|-----------------|
+| `equal` | `sign / 7` | `1/7` each |
+| `inv_vol` | `sign/σ` then `sum(|w|)=1` | `1/σ` then `sum(w)=1` |
+
+Vols are expanding sleeve return std (`date < t`). Oracle (full-sample signs/vols)
+is plotted dashed. Outputs under `backtest/results/{equal,inv_vol}/` and
+`backtest/figures/{equal,inv_vol}/` (separate equity + drawdown per scheme), plus
+pairwise compares in `backtest/figures/compare/`. Markdown summary:
+`backtest/results/recap.md` (regenerated with each run).
 
 ### `releases_raw.csv` schema
 

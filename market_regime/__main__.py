@@ -1,9 +1,10 @@
-"""CLI: download | preprocess | returns | download-releases | regimes."""
+"""CLI: download | preprocess | returns | download-releases | regimes | backtest."""
 
 from __future__ import annotations
 
 import argparse
 
+from backtest.run import main as backtest_main
 from market_regime.download import main as download_main
 from market_regime.download_releases import main as download_releases_main
 from market_regime.preprocess import main as preprocess_main
@@ -27,6 +28,10 @@ def main() -> None:
         "regimes",
         help="Map A/B labels + mean returns by box -> data/regimes.csv",
     )
+    sub.add_parser(
+        "backtest",
+        help="Expanding Map B LS + EW bench -> backtest/results + figures",
+    )
 
     args, rest = parser.parse_known_args()
     if args.cmd == "download":
@@ -37,8 +42,10 @@ def main() -> None:
         returns_main(rest)
     elif args.cmd == "download-releases":
         download_releases_main(rest)
-    else:
+    elif args.cmd == "regimes":
         regimes_main(rest)
+    else:
+        backtest_main(rest)
 
 
 if __name__ == "__main__":
